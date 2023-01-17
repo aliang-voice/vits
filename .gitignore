@@ -8,9 +8,7 @@ __pycache__
 
 build
 *.c
-monotonic_align/monotonic_align
 vits_out/
 data/
-logs/
 model/
 .idea/
