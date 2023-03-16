@@ -13,12 +13,13 @@ from text.cleaners import spanish_cleaner
 from tqdm import tqdm
 import librosa
 from scipy.io.wavfile import write
+import warnings
+warnings.filterwarnings('ignore')
 
-
-es_dir = "/home/stary/code/dataset/es"
+es_dir = "/data01/code/dataset/es"
 data_name = ["train.tsv", "validated.tsv"]
-data_dir = "/home/stary/code/dataset/es/clips"
-new_dir_path = "/home/stary/code/dataset/es/clips"
+data_dir = "/data01/code/dataset/es/clips"
+new_dir_path = "/data01/code/dataset/es/clips"
 
 
 def transfer_flac_to_wav(path, new_path):
@@ -50,7 +51,7 @@ def deal_with_filelists():
 def deal_with_audio():
     for filepath, dirnames, filenames in os.walk(data_dir):
         print(filepath)
-        for filename in filenames:
+        for filename in tqdm(filenames):
             if "mp3" in filename:
                 file_path = os.path.join(filepath, filename)
                 new_file_path = file_path.replace("mp3", "wav")

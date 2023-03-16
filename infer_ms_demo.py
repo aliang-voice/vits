@@ -23,7 +23,8 @@ logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
 
 
 class InferEngine(object):
-    def __init__(self):
+    def __init__(self, speaker_index):
+        self.speaker_index = speaker_index
         self.load_hps()
         self.load_model()
 
@@ -51,32 +52,41 @@ class InferEngine(object):
         wav *= 32767 / max(0.01, np.max(np.abs(wav))) * 0.6
         wavfile.write(path, rate, wav.astype(np.int16))
 
-    def fit(self, text, n):
-        stn_tst = self.get_text(text)
-        with torch.no_grad():
-            x_tst = stn_tst.cuda().unsqueeze(0)
-            x_tst_lengths = torch.LongTensor([stn_tst.size(0)]).cuda()
-            sid = torch.LongTensor([2]).cuda()
-            audio = self.net_g.infer(x_tst, x_tst_lengths, sid=sid, noise_scale=.667, noise_scale_w=0.8, length_scale=1)[0][
-                0, 0].data.cpu().float().numpy()
+    def fit(self, txt_path, name):
+        all_audio = []
+        with open(txt_path, 'r') as f:
+            txt = f.readlines()
+        n = 0
+        for sen in tqdm(txt):
+            logging.info("sentence: {}".format(sen))
+            if sen == '\n':
+                continue
+            elif sen.startswith('_'):
+                continue
+            else:
+                try:
+                    stn_tst = self.get_text(sen)
+                    with torch.no_grad():
+                        x_tst = stn_tst.cuda().unsqueeze(0)
+                        x_tst_lengths = torch.LongTensor([stn_tst.size(0)]).cuda()
+                        sid = torch.LongTensor([self.speaker_index]).cuda()
+                        audio = self.net_g.infer(x_tst, x_tst_lengths, sid=sid, noise_scale=.667, noise_scale_w=0.8,
+                                                 length_scale=1)[0][
+                            0, 0].data.cpu().float().numpy()
+                        split_audio = np.zeros(20000, dtype=np.float32)
+                        all_audio.append(audio)
+                        all_audio.append(split_audio)
+                except Exception as e:
+                    logging.info(e)
+        all_audio = np.concatenate(all_audio, axis=0)
+        self.save(all_audio, name)
 
-        self.save_wav(audio, f"./vits_out/{n}.wav", self.hps.data.sampling_rate)
+    def save(self, audio, name):
+        self.save_wav(audio, name, self.hps.data.sampling_rate)
 
 
 if __name__ == '__main__':
-    ie = InferEngine()
-    with open("data/1963489_6327154_Chapter 57 – A Fever   .txt", 'r') as f:
-        txt = f.readlines()
-    n = 0
-    for sen in tqdm(txt):
-        logging.info("sentence: {}".format(sen))
-        if sen == '\n':
-            continue
-        elif sen.startswith('_'):
-            continue
-        else:
-            try:
-                ie.fit(sen, n)
-                n = n + 1
-            except Exception as e:
-                logging.info(e)
+    txt_path = "data/2327239.txt"
+    for speaker_index in range(100):
+        ie = InferEngine(speaker_index=speaker_index)
+        ie.fit(txt_path, f"./vits_out/multi_speaker_{speaker_index}.wav")

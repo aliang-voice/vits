@@ -15,12 +15,12 @@ def transfer_flac_to_wav(path, new_path):
     write(new_path, 22050, x)
 
 
-dir_path = "/home/stary/code/dataset/vctk/wav48_silence_trimmed"
-new_dir_path = "/home/stary/code/dataset/vctk/downsampled_wavs"
+dir_path = "/data/dataset/VCTK-Corpus/wav48"
+new_dir_path = "/data/dataset/VCTK-Corpus/downsampled_wavs"
 for filepath, dirnames, filenames in os.walk(dir_path):
     print(filepath)
     for filename in tqdm(filenames):
-        if "flac" in filename:
+        if "wav" in filename:
             file_path = os.path.join(filepath, filename)
             cluster = filepath[-4:]
             new_cluster_path = new_dir_path + "/" + cluster
