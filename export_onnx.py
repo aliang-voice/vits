@@ -4,15 +4,12 @@
 # @Author  : Aliang
 
 import argparse
-import logging
 from pathlib import Path
 from typing import Optional
-
+import utils
 import torch
-
-from lightning import VitsModel
-
-_LOGGER = logging.getLogger("larynx_train.export_onnx")
+from text.symbols import symbols
+from models import SynthesizerTrn
 
 OPSET_VERSION = 15
 
@@ -22,29 +19,19 @@ def main():
     torch.manual_seed(1234)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("checkpoint", help="Path to model checkpoint (.ckpt)")
-    parser.add_argument("output", help="Path to output model (.onnx)")
+    parser.add_argument("--checkpoint", default="./model/pretrained_vctk.pth", help="Path to model checkpoint (.ckpt)")
+    parser.add_argument("--output", default="demo.onnx", help="Path to output model (.onnx)",)
 
-    parser.add_argument(
-        "--debug", action="store_true", help="Print DEBUG messages to the console"
-    )
     args = parser.parse_args()
 
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    hps = utils.get_hparams_from_file("./configs/vctk_base.json")
+    model_g = SynthesizerTrn(
+        len(symbols),
+        hps.data.filter_length // 2 + 1,
+        hps.train.segment_size // hps.data.hop_length,
+        **hps.model)
 
-    _LOGGER.debug(args)
-
-    # -------------------------------------------------------------------------
-
-    args.checkpoint = Path(args.checkpoint)
-    args.output = Path(args.output)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-
-    model = VitsModel.load_from_checkpoint(args.checkpoint, dataset=None)
-    model_g = model.model_g
+    _ = utils.load_checkpoint("./model/G_450000.pth", model_g, None)
 
     num_symbols = model_g.n_vocab
     num_speakers = model_g.n_speakers
@@ -88,7 +75,6 @@ def main():
     scales = torch.FloatTensor([0.667, 1.0, 0.8])
     dummy_input = (sequences, sequence_lengths, scales, sid)
 
-    # Export
     torch.onnx.export(
         model=model_g,
         args=dummy_input,
@@ -103,11 +89,8 @@ def main():
             "output": {0: "batch_size", 1: "time"},
         },
     )
+    print("done")
 
-    _LOGGER.info("Exported model to %s", args.output)
-
-
-# -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
     main()

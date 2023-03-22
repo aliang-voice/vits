@@ -5,7 +5,7 @@
 
 import os
 import logging
-
+from tqdm import tqdm
 numba_logger = logging.getLogger('numba')
 numba_logger.setLevel(logging.WARNING)
 import torch
@@ -14,7 +14,7 @@ from utils import load_wav_to_torch
 from mel_processing import spectrogram_torch
 
 # Config：
-filelists = './filelists/common_audio_text_es_validated.tsv.cleaned'
+filelists = './filelists/wehear_audio_text_val.txt.cleaned'
 # is_relative = True
 is_single_speaker = True
 
@@ -47,7 +47,7 @@ if len(voices) == len(lines):
 
 # 格式及采样率检测
 audio_pass_flag = True
-for voice in voices:
+for voice in tqdm(voices):
     try:
         audio, sampling_rate = load_wav_to_torch(voice)
         if sampling_rate != 22050:

@@ -54,6 +54,9 @@ python train_ms.py -c configs/vctk_base.json -m vctk_base
 
 # es
 python train.py -c configs/es_base.json -m es_base
+
+# wehear
+python train.py -c configs/wehear_base.json -m wehear_base
 ```
 
 
